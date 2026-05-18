@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-from llm import call_claude, call_deepseek
+from llm import call_claude, call_deepseek, ModelTier
 
 system_prompt = """
 You are a grammar and spelling checker for academic LaTeX documents.
@@ -16,6 +16,8 @@ Your job is to:
 
 If there are no grammar or spelling errors, return the original content unchanged and an empty summary list.
 """
+
+
 
 def get_changed_tex_files() -> dict[str, str]:
     before = os.environ["BEFORE_SHA"]
@@ -37,6 +39,7 @@ def get_changed_tex_files() -> dict[str, str]:
 
 def main():
     provider = os.environ["LLM_PROVIDER"]
+    model_tier = ModelTier(os.environ.get("LLM_TIER", "medium").lower())
     tex_files = get_changed_tex_files()
 
     if not tex_files:
@@ -46,9 +49,9 @@ def main():
     content = "\n\n".join(f"=== {name} ===\n{body}" for name, body in tex_files.items())
 
     if provider == "deepseek":
-        result = call_deepseek(content, system_prompt)
+        result = call_deepseek(content, system_prompt, model_tier)
     elif provider == "claude":
-        result = call_claude(content, system_prompt)
+        result = call_claude(content, system_prompt, model_tier)
     else:
         raise ValueError(f"Unknown LLM_PROVIDER: {provider!r}")
     print(result)
