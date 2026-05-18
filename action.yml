@@ -15,6 +15,9 @@ inputs:
     description: 'Model tier: cheap | medium | expensive'
     required: false
     default: 'medium'
+  file-extensions:
+    description: 'Comma-separated file extensions to check (e.g. "tex,md"). No leading dot.'
+    required: true
 
 runs:
   using: 'composite'
@@ -36,6 +39,7 @@ runs:
         LLM_PROVIDER: ${{ inputs.provider }}
         LLM_TIER: ${{ inputs.tier }}
         LLM_API_KEY: ${{ inputs.api-key }}
+        FILE_EXTENSIONS: ${{ inputs.file-extensions }}
         BEFORE_SHA: ${{ github.event.before }}
         AFTER_SHA: ${{ github.sha }}
         ACTION_PATH: ${{ github.action_path }}

@@ -3,15 +3,13 @@ import subprocess
 
 from llm import call_claude, call_deepseek, ModelTier
 
-FILE_GLOB = "*.tex"
-
 system_prompt = """
-You are a grammar and spelling checker for academic LaTeX documents.
+You are a grammar and spelling checker for prose documents.
 
-You will receive the full content of one or more .tex files, each prefixed with === filename ===.
+You will receive the full content of one or more files, each prefixed with === filename ===.
 Your job is to:
-- Fix grammar and spelling errors in prose sections only
-- Never modify LaTeX commands, environments, math, citations, or references
+- Fix grammar and spelling errors in prose only
+- Never modify markup, commands, code, math, citations, or references (e.g. LaTeX commands and environments, Markdown syntax, code blocks, inline code)
 - Never change the meaning or style of the writing, only correct clear errors
 - Return corrected_files as a dict mapping each filename to its fully corrected content
 - Return a concise bullet list of what you changed across all files
@@ -20,12 +18,20 @@ If there are no grammar or spelling errors, return the original content unchange
 """
 
 
+def parse_globs() -> list[str]:
+    raw = os.environ["FILE_EXTENSIONS"]
+    globs = [f"*.{ext.strip().lstrip('.')}" for ext in raw.split(",") if ext.strip().lstrip(".")]
+    if not globs:
+        raise ValueError(f"FILE_EXTENSIONS must list at least one extension, got: {raw!r}")
+    return globs
 
-def get_changed_tex_files() -> dict[str, str]:
+
+def get_changed_files() -> dict[str, str]:
     before = os.environ["BEFORE_SHA"]
     after = os.environ["AFTER_SHA"]
+    globs = parse_globs()
     changed = subprocess.run(
-        args=["git", "diff", before, after, "--name-only", "--diff-filter=ACM", "--", FILE_GLOB],
+        args=["git", "diff", before, after, "--name-only", "--diff-filter=ACM", "--", *globs],
         capture_output=True,
         text=True
     ).stdout.strip()
@@ -42,13 +48,13 @@ def get_changed_tex_files() -> dict[str, str]:
 def main():
     provider = os.environ["LLM_PROVIDER"]
     model_tier = ModelTier(os.environ.get("LLM_TIER", "").strip().lower() or "medium")
-    tex_files = get_changed_tex_files()
+    files = get_changed_files()
 
-    if not tex_files:
-        print("No .tex files changed, skipping.")
+    if not files:
+        print("No matching files changed, skipping.")
         return
 
-    content = "\n\n".join(f"=== {name} ===\n{body}" for name, body in tex_files.items())
+    content = "\n\n".join(f"=== {name} ===\n{body}" for name, body in files.items())
 
     if provider == "deepseek":
         result = call_deepseek(content, system_prompt, model_tier)
