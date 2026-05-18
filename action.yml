@@ -1,0 +1,57 @@
+name: 'Grammar Check'
+description: 'AI grammar/spelling check for LaTeX files; opens a PR with fixes.'
+branding:
+  icon: 'check-circle'
+  color: 'blue'
+
+inputs:
+  provider:
+    description: 'LLM provider: claude | deepseek'
+    required: true
+  api-key:
+    description: 'API key for the chosen provider'
+    required: true
+  tier:
+    description: 'Model tier: cheap | medium | expensive'
+    required: false
+    default: 'medium'
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - uses: astral-sh/setup-uv@v6
+
+    - name: Install action dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: uv sync --frozen
+
+    - name: Run grammar checker
+      shell: bash
+      env:
+        LLM_PROVIDER: ${{ inputs.provider }}
+        LLM_TIER: ${{ inputs.tier }}
+        LLM_API_KEY: ${{ inputs.api-key }}
+        BEFORE_SHA: ${{ github.event.before }}
+        AFTER_SHA: ${{ github.sha }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: uv --project "$ACTION_PATH" run python "$ACTION_PATH/main.py"
+
+    - name: Open PR with fixes
+      if: hashFiles('pr_description.md') != ''
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        BRANCH: grammar-fix/${{ github.sha }}
+      run: |
+        git config user.name  "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git checkout -b "$BRANCH"
+        git add -u
+        git commit -m "Grammar fixes"
+        git push --force origin "$BRANCH"
+        gh pr create --title "Grammar fixes" --body-file pr_description.md

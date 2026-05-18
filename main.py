@@ -3,6 +3,8 @@ import subprocess
 
 from llm import call_claude, call_deepseek, ModelTier
 
+FILE_GLOB = "*.tex"
+
 system_prompt = """
 You are a grammar and spelling checker for academic LaTeX documents.
 
@@ -23,7 +25,7 @@ def get_changed_tex_files() -> dict[str, str]:
     before = os.environ["BEFORE_SHA"]
     after = os.environ["AFTER_SHA"]
     changed = subprocess.run(
-        args=["git", "diff", before, after, "--name-only", "--diff-filter=ACM", "--", "*.tex"],
+        args=["git", "diff", before, after, "--name-only", "--diff-filter=ACM", "--", FILE_GLOB],
         capture_output=True,
         text=True
     ).stdout.strip()

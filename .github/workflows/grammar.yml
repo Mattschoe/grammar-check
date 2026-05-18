@@ -15,31 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: ./
         with:
-          fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
-
-      - name: Install dependencies
-        run: uv sync
-    
-      - name: Run grammar checker script
-        run: uv run python main.py
-        env:
-          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
-          LLM_TIER: ${{ vars.LLM_TIER }}
-          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-          BEFORE_SHA: ${{ github.event.before }}
-          AFTER_SHA: ${{ github.event.after }}
-
-      - name: Create PR
-        if: hashFiles('pr_description.md') != ''
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b grammar-fix/${{ github.sha }}
-          git add -u *.tex
-          git commit -m "Grammar fixes"
-          git push --force origin grammar-fix/${{ github.sha }}
-          gh pr create --title "Grammar fixes" --body "$(cat pr_description.md)"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          provider: ${{ vars.LLM_PROVIDER }}
+          api-key: ${{ secrets.LLM_API_KEY }}
+          tier: ${{ vars.LLM_TIER }}
