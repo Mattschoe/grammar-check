@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/Mattschoe/grammar-check/compare/v1.1.0...v1.1.1) (2026-05-18)
+
+
+### Bug Fixes
+
+* process changed files one-by-one to avoid response truncation ([1ebac32](https://github.com/Mattschoe/grammar-check/commit/1ebac32059170048ab8349d773cc3276e961354a))
+* scope setup-uv cache-dependency-glob to the action path ([d7f5716](https://github.com/Mattschoe/grammar-check/commit/d7f571610b92c5c69c11ce8ba1b4aa9d791d6118))
+
 ## [1.1.0](https://github.com/Mattschoe/grammar-check/compare/v1.0.0...v1.1.0) (2026-05-18)
 
 
