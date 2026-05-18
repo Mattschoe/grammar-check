@@ -15,8 +15,8 @@ from openai.types.chat import (
 from openai.types.shared_params import ResponseFormatJSONObject
 
 @dataclass
-class Response:
-    corrected_files: dict
+class FileResponse:
+    corrected_content: str
     summary: list[str]
 
 class ModelTier(Enum):
@@ -24,16 +24,22 @@ class ModelTier(Enum):
     MEDIUM = "medium"
     EXPENSIVE = "expensive"
 
+DEEPSEEK_MAX_TOKENS = 8192
+CLAUDE_MAX_TOKENS = 16384
+
 _TOOL_SCHEMA = {
     "type": "object",
     "properties": {
-        "corrected_files": {"type": "object"},
+        "corrected_content": {"type": "string"},
         "summary": {"type": "array", "items": {"type": "string"}}
     },
-    "required": ["corrected_files", "summary"]
+    "required": ["corrected_content", "summary"]
 }
 
-def call_claude(unedited_text: str, system_prompt: str, model_tier: ModelTier) -> Response:
+def _user_message(filename: str, file_content: str) -> str:
+    return f"=== {filename} ===\n{file_content}"
+
+def call_claude(filename: str, file_content: str, system_prompt: str, model_tier: ModelTier) -> FileResponse:
     tools = [{
         "name": "submit_grammar_fixes",
         "description": "Submit the grammar fixes and summary",
@@ -52,25 +58,32 @@ def call_claude(unedited_text: str, system_prompt: str, model_tier: ModelTier) -
 
     response = client.messages.create(
         model=model,
+        max_tokens=CLAUDE_MAX_TOKENS,
         tools=tools,
         system=system_prompt,
         tool_choice={"type": "tool", "name": "submit_grammar_fixes"},
-        messages=[{"role": "user", "content": unedited_text}]
+        messages=[{"role": "user", "content": _user_message(filename, file_content)}]
     )
 
+    if response.stop_reason == "max_tokens":
+        raise RuntimeError(
+            f"Model output truncated for {filename!r}; file is too large for a single response. "
+            f"Split the file or raise max_tokens."
+        )
+
     result = response.content[0].input
-    return Response(
-        corrected_files=cast(dict, result["corrected_files"]),
+    return FileResponse(
+        corrected_content=cast(str, result["corrected_content"]),
         summary=cast(list[str], result["summary"])
     )
 
-def call_deepseek(unedited_text: str, system_prompt: str, model_tier: ModelTier) -> Response:
+def call_deepseek(filename: str, file_content: str, system_prompt: str, model_tier: ModelTier) -> FileResponse:
     api_key = os.environ["LLM_API_KEY"]
     client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
 
     _JSON_SCHEMA_PROMPT = (
         '\n\nRespond with a JSON object matching this schema exactly:\n'
-        '{"corrected_files": {"<filename>": "<corrected content>"}, "summary": ["<change 1>", ...]}'
+        '{"corrected_content": "<corrected file content>", "summary": ["<change 1>", ...]}'
     )
 
     match model_tier:
@@ -81,16 +94,23 @@ def call_deepseek(unedited_text: str, system_prompt: str, model_tier: ModelTier)
         case ModelTier.EXPENSIVE:
             model = "deepseek-v4-pro"
     thinking_enabled = model_tier == ModelTier.EXPENSIVE
+    user_content = _user_message(filename, file_content)
     if thinking_enabled:
         response = client.chat.completions.create(
             model=model,
+            max_tokens=DEEPSEEK_MAX_TOKENS,
             extra_body={"thinking": {"type": "enabled"}},
             response_format=ResponseFormatJSONObject(type="json_object"),
             messages=[
                 ChatCompletionSystemMessageParam(role="system", content=system_prompt + _JSON_SCHEMA_PROMPT),
-                ChatCompletionUserMessageParam(role="user", content=unedited_text),
+                ChatCompletionUserMessageParam(role="user", content=user_content),
             ],
         )
+        if response.choices[0].finish_reason == "length":
+            raise RuntimeError(
+                f"Model output truncated for {filename!r}; file is too large for a single response. "
+                f"Split the file or raise max_tokens."
+            )
         result = json.loads(response.choices[0].message.content)
     else:
         tools: list[ChatCompletionToolParam] = [{
@@ -107,17 +127,23 @@ def call_deepseek(unedited_text: str, system_prompt: str, model_tier: ModelTier)
         }
         response = client.chat.completions.create(
             model=model,
+            max_tokens=DEEPSEEK_MAX_TOKENS,
             tools=tools,
             extra_body={"thinking": {"type": "disabled"}},
             tool_choice=tool_choice,
             messages=[
                 ChatCompletionSystemMessageParam(role="system", content=system_prompt),
-                ChatCompletionUserMessageParam(role="user", content=unedited_text),
+                ChatCompletionUserMessageParam(role="user", content=user_content),
             ],
         )
+        if response.choices[0].finish_reason == "length":
+            raise RuntimeError(
+                f"Model output truncated for {filename!r}; file is too large for a single response. "
+                f"Split the file or raise max_tokens."
+            )
         result = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
 
-    return Response(
-        corrected_files=cast(dict, result["corrected_files"]),
+    return FileResponse(
+        corrected_content=cast(str, result["corrected_content"]),
         summary=cast(list[str], result["summary"])
     )
