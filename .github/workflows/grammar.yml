@@ -1,0 +1,33 @@
+name: Grammar Check
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  grammar-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install dependencies
+        run: uv sync
+    
+      - name: Run grammar checker script
+        run: uv run python scripts/grammar.py
+
+      - name: Create OR
+        run: | 
+          git checkout -b grammar-fix/${{ github.sha }}
+          git add -u *.tex
+          git commit -m "Grammar fixes"
+          git push origin grammar-fix/${{ github.sha }}
+          gh pr create --title "Grammar fixes" --body "$(cat pr_description.md)"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
