@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/Mattschoe/grammar-check/compare/v1.1.1...v1.2.0) (2026-05-18)
+
+
+### Features
+
+* add configurable max-output-tokens input ([8ee42e2](https://github.com/Mattschoe/grammar-check/commit/8ee42e2797703130629a1eb8b6caff6f0affa4e8))
+
 ## [1.1.1](https://github.com/Mattschoe/grammar-check/compare/v1.1.0...v1.1.1) (2026-05-18)
 
 
