@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/Mattschoe/grammar-check/compare/v1.0.0...v1.1.0) (2026-05-18)
+
+
+### Features
+
+* surface run results in GitHub step summary ([eabaa30](https://github.com/Mattschoe/grammar-check/commit/eabaa3077f9c2332f39b64f4673fbcc82530285c))
+
 ## 1.0.0 (2026-05-18)
 
 
