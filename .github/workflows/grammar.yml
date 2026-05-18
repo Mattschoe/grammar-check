@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '**.tex'
 
 permissions:
   contents: write
@@ -19,10 +21,14 @@ jobs:
         run: uv sync
     
       - name: Run grammar checker script
-        run: uv run python scripts/grammar.py
+        run: uv run python main.py
+        env:
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
 
-      - name: Create OR
-        run: | 
+      - name: Create PR
+        if: hashFiles('pr_description.md') != ''
+        run: |
           git checkout -b grammar-fix/${{ github.sha }}
           git add -u *.tex
           git commit -m "Grammar fixes"
@@ -30,4 +36,3 @@ jobs:
           gh pr create --title "Grammar fixes" --body "$(cat pr_description.md)"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}

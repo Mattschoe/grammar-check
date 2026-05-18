@@ -1,6 +1,7 @@
+import os
 import subprocess
 
-from llm import call_claude
+from llm import call_claude, call_deepseek
 
 system_prompt = """
 You are a grammar and spelling checker for academic LaTeX documents.
@@ -15,9 +16,6 @@ If there are no grammar or spelling errors, return the original content unchange
 """
 
 def get_diff() -> str:
-    """
-    :return: the diff from the latest commit.
-    """
     return subprocess.run(
         args=["git", "diff", "HEAD~1", "HEAD", "--", "*.tex"],
         capture_output=True,
@@ -25,8 +23,15 @@ def get_diff() -> str:
     ).stdout
 
 def main():
+    provider = os.environ["LLM_PROVIDER"]
     diff = get_diff()
-    result = call_claude(diff, system_prompt)
+
+    if provider == "deepseek":
+        result = call_deepseek(diff, system_prompt)
+    elif provider == "claude":
+        result = call_claude(diff, system_prompt)
+    else:
+        raise ValueError(f"Unknown LLM_PROVIDER: {provider!r}")
     print(result)
 
     if not result.summary:
