@@ -24,9 +24,6 @@ class ModelTier(Enum):
     MEDIUM = "medium"
     EXPENSIVE = "expensive"
 
-DEEPSEEK_MAX_TOKENS = 8192
-CLAUDE_MAX_TOKENS = 16384
-
 _TOOL_SCHEMA = {
     "type": "object",
     "properties": {
@@ -39,7 +36,7 @@ _TOOL_SCHEMA = {
 def _user_message(filename: str, file_content: str) -> str:
     return f"=== {filename} ===\n{file_content}"
 
-def call_claude(filename: str, file_content: str, system_prompt: str, model_tier: ModelTier) -> FileResponse:
+def call_claude(filename: str, file_content: str, system_prompt: str, model_tier: ModelTier, max_output_tokens: int) -> FileResponse:
     tools = [{
         "name": "submit_grammar_fixes",
         "description": "Submit the grammar fixes and summary",
@@ -58,7 +55,7 @@ def call_claude(filename: str, file_content: str, system_prompt: str, model_tier
 
     response = client.messages.create(
         model=model,
-        max_tokens=CLAUDE_MAX_TOKENS,
+        max_tokens=max_output_tokens,
         tools=tools,
         system=system_prompt,
         tool_choice={"type": "tool", "name": "submit_grammar_fixes"},
@@ -77,7 +74,7 @@ def call_claude(filename: str, file_content: str, system_prompt: str, model_tier
         summary=cast(list[str], result["summary"])
     )
 
-def call_deepseek(filename: str, file_content: str, system_prompt: str, model_tier: ModelTier) -> FileResponse:
+def call_deepseek(filename: str, file_content: str, system_prompt: str, model_tier: ModelTier, max_output_tokens: int) -> FileResponse:
     api_key = os.environ["LLM_API_KEY"]
     client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
 
@@ -98,7 +95,7 @@ def call_deepseek(filename: str, file_content: str, system_prompt: str, model_ti
     if thinking_enabled:
         response = client.chat.completions.create(
             model=model,
-            max_tokens=DEEPSEEK_MAX_TOKENS,
+            max_tokens=max_output_tokens,
             extra_body={"thinking": {"type": "enabled"}},
             response_format=ResponseFormatJSONObject(type="json_object"),
             messages=[
@@ -127,7 +124,7 @@ def call_deepseek(filename: str, file_content: str, system_prompt: str, model_ti
         }
         response = client.chat.completions.create(
             model=model,
-            max_tokens=DEEPSEEK_MAX_TOKENS,
+            max_tokens=max_output_tokens,
             tools=tools,
             extra_body={"thinking": {"type": "disabled"}},
             tool_choice=tool_choice,

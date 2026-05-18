@@ -53,17 +53,18 @@ def write_summary(message: str) -> None:
             f.write(f"### Grammar check\n\n{message}\n")
 
 
-def check_file(provider: str, filename: str, body: str, model_tier: ModelTier) -> FileResponse:
+def check_file(provider: str, filename: str, body: str, model_tier: ModelTier, max_output_tokens: int) -> FileResponse:
     if provider == "deepseek":
-        return call_deepseek(filename, body, system_prompt, model_tier)
+        return call_deepseek(filename, body, system_prompt, model_tier, max_output_tokens)
     if provider == "claude":
-        return call_claude(filename, body, system_prompt, model_tier)
+        return call_claude(filename, body, system_prompt, model_tier, max_output_tokens)
     raise ValueError(f"Unknown LLM_PROVIDER: {provider!r}")
 
 
 def main():
     provider = os.environ["LLM_PROVIDER"]
     model_tier = ModelTier(os.environ.get("LLM_TIER", "").strip().lower() or "medium")
+    max_output_tokens = int(os.environ.get("LLM_MAX_OUTPUT_TOKENS", "16384"))
     files = get_changed_files()
 
     if not files:
@@ -73,7 +74,7 @@ def main():
     corrected_files: dict[str, str] = {}
     summary: list[str] = []
     for filename, body in files.items():
-        result = check_file(provider, filename, body, model_tier)
+        result = check_file(provider, filename, body, model_tier, max_output_tokens)
         if not result.summary and result.corrected_content == body:
             continue
         corrected_files[filename] = result.corrected_content

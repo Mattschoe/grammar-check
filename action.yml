@@ -18,6 +18,10 @@ inputs:
   file-extensions:
     description: 'Comma-separated file extensions to check (e.g. "tex,md"). No leading dot.'
     required: true
+  max-output-tokens:
+    description: 'Maximum output tokens per file. Raise for long documents that get truncated.'
+    required: false
+    default: '16384'
 
 runs:
   using: 'composite'
@@ -42,6 +46,7 @@ runs:
         LLM_TIER: ${{ inputs.tier }}
         LLM_API_KEY: ${{ inputs.api-key }}
         FILE_EXTENSIONS: ${{ inputs.file-extensions }}
+        LLM_MAX_OUTPUT_TOKENS: ${{ inputs.max-output-tokens }}
         BEFORE_SHA: ${{ github.event.before }}
         AFTER_SHA: ${{ github.sha }}
         ACTION_PATH: ${{ github.action_path }}

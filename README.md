@@ -42,12 +42,13 @@ if nothing needed fixing, the action is a no-op.
 
 ## Inputs
 
-| Input             | Required | Default  | Description                                                   |
-|-------------------|----------|----------|---------------------------------------------------------------|
-| `provider`        | yes      | —        | `claude` or `deepseek`.                                       |
-| `api-key`         | yes      | —        | API key for the chosen provider.                              |
-| `file-extensions` | yes      | —        | Comma-separated extensions to check, no dots (e.g. `tex,md`). |
-| `tier`            | no       | `medium` | Model size: `cheap`, `medium`, or `expensive`.                |
+| Input               | Required | Default  | Description                                                   |
+|---------------------|----------|----------|---------------------------------------------------------------|
+| `provider`          | yes      | —        | `claude` or `deepseek`.                                       |
+| `api-key`           | yes      | —        | API key for the chosen provider.                              |
+| `file-extensions`   | yes      | —        | Comma-separated extensions to check, no dots (e.g. `tex,md`). |
+| `tier`              | no       | `medium` | Model size: `cheap`, `medium`, or `expensive`.                |
+| `max-output-tokens` | no       | `16384`  | Max output tokens per file. Raise for long documents.         |
 
 ## Supported Providers & Tiers
 
