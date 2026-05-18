@@ -1,10 +1,12 @@
 # grammar-check
 
-A GitHub Action that runs an LLM over your repo's `.tex` files on every push, fixes grammar and spelling, and opens a PR with the changes. Supports Claude and DeepSeek.
+A GitHub Action that runs an LLM over your repo's prose files (`.tex`, `.md`, …) on every push, fixes grammar and spelling, and opens a PR with the changes.
 
-## Usage
+Edits land in a PR for review instead of pushing straight to `main`, so you stay in control of what merges.
 
-Drop this into `.github/workflows/grammar.yml` in your repo:
+## Quick start
+
+`.github/workflows/grammar.yml`:
 
 ```yaml
 name: Grammar Check
@@ -24,36 +26,67 @@ jobs:
         with:
           provider: claude
           api-key: ${{ secrets.LLM_API_KEY }}
+          file-extensions: tex,md
 ```
 
-That's the whole consumer-side config. The action handles checkout, dependency install, running the checker, and opening the PR.
+The action handles opening the PR.
 
-### Optional: filter to `.tex` pushes
+## How it works
 
-If you'd rather not invoke the action on pushes that don't touch any `.tex` files, add a `paths` filter to the trigger:
+On each push, the action looks at which files changed, filters to the 
+extensions you configured, and sends only those files to your chosen LLM. 
+The model is instructed to fix grammar and spelling only, never markup, 
+code, math, citations, or references. If anything was corrected, 
+you get a PR with the cleaned-up files and a bullet summary of changes; 
+if nothing needed fixing, the action is a no-op.
+
+## Inputs
+
+| Input             | Required | Default  | Description                                                   |
+|-------------------|----------|----------|---------------------------------------------------------------|
+| `provider`        | yes      | —        | `claude` or `deepseek`.                                       |
+| `api-key`         | yes      | —        | API key for the chosen provider.                              |
+| `file-extensions` | yes      | —        | Comma-separated extensions to check, no dots (e.g. `tex,md`). |
+| `tier`            | no       | `medium` | Model size: `cheap`, `medium`, or `expensive`.                |
+
+## Supported Providers & Tiers
+
+- **Claude:**  `api-key` is your Anthropic key. Tiers map to Haiku 4.5 (`cheap`), Sonnet 4.6 (`medium`), and Opus 4.7 (`expensive`).
+- **DeepSeek:** `api-key` is your DeepSeek key. `cheap` and `medium` use `deepseek-v4-flash`; `expensive` uses `deepseek-v4-pro` with extended thinking.
+
+## Optional: skip pushes that don't touch prose
+
+If you'd rather not invoke the action on pushes that don't touch any of the configured file types, add a `paths` filter that mirrors your `file-extensions`:
 
 ```yaml
 on:
   push:
     branches: [main]
-    paths: ['**.tex']
+    paths: ['**.tex', '**.md']
 ```
 
-The action is a no-op when there are no changed `.tex` files, so this is purely an optimization.
+This is purely an optimization, the action is already a no-op when no matching files changed.
 
-## Inputs
+## Permissions
 
-| Input      | Required | Default  | Description                                       |
-|------------|----------|----------|---------------------------------------------------|
-| `provider` | yes      | —        | `claude` or `deepseek`                            |
-| `api-key`  | yes      | —        | API key for the chosen provider                   |
-| `tier`     | no       | `medium` | `cheap`, `medium`, or `expensive` — model size    |
+The workflow needs `contents: write` and `pull-requests: write` so the final step can 
+open a PR via `gh`. Without them you'll see a 403 from `gh pr create`.
 
-## Why the workflow needs a `permissions:` block
+To enable permissions go to: `Settings` -> `Actions` -> `General` 
+-> `Workflow Permissions` -> `Allow GitHub Actions to create and approve pull requests`
 
-GitHub Actions does not let a composite action elevate the consumer's `GITHUB_TOKEN` on its own. The action's final step opens a PR using `gh`, which requires `contents: write` and `pull-requests: write`. Without those, you'll see a 403 from `gh pr create`. This is a platform constraint, not something the action can paper over.
+## FAQ
 
-## Provider notes
+**Will it edit my code, math, or markup?**
+No. The model is told to leave LaTeX commands, Markdown syntax, code blocks, inline code, math, citations, and references untouched, and to only correct clear prose errors.
 
-- **Claude** — `api-key` is your Anthropic API key. Tiers map to Haiku / Sonnet / Opus.
-- **DeepSeek** — `api-key` is your DeepSeek key. `expensive` enables extended thinking.
+**Does it cost money?**
+Yes, you're paying your LLM provider directly per request. Pick `cheap` if you're cost-sensitive, or `expensive` for the strongest model on each provider.
+
+## Contributing
+
+Issues and PRs welcome at [github.com/Mattschoe/grammar-check](https://github.com/Mattschoe/grammar-check).
+
+## License
+
+BSD 3-Clause — see [LICENSE](./LICENSE).
