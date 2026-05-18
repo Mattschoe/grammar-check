@@ -18,8 +18,10 @@ If there are no grammar or spelling errors, return the original content unchange
 """
 
 def get_changed_tex_files() -> dict[str, str]:
+    before = os.environ["BEFORE_SHA"]
+    after = os.environ["AFTER_SHA"]
     changed = subprocess.run(
-        args=["git", "diff", "HEAD~1", "HEAD", "--name-only", "--diff-filter=ACM", "--", "*.tex"],
+        args=["git", "diff", before, after, "--name-only", "--diff-filter=ACM", "--", "*.tex"],
         capture_output=True,
         text=True
     ).stdout.strip()
