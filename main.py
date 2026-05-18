@@ -45,13 +45,21 @@ def get_changed_files() -> dict[str, str]:
             files[path] = f.read()
     return files
 
+def write_summary(message: str) -> None:
+    print(message)
+    path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if path:
+        with open(path, "a") as f:
+            f.write(f"### Grammar check\n\n{message}\n")
+
+
 def main():
     provider = os.environ["LLM_PROVIDER"]
     model_tier = ModelTier(os.environ.get("LLM_TIER", "").strip().lower() or "medium")
     files = get_changed_files()
 
     if not files:
-        print("No matching files changed, skipping.")
+        write_summary("No matching files changed — nothing to check.")
         return
 
     content = "\n\n".join(f"=== {name} ===\n{body}" for name, body in files.items())
@@ -62,10 +70,9 @@ def main():
         result = call_claude(content, system_prompt, model_tier)
     else:
         raise ValueError(f"Unknown LLM_PROVIDER: {provider!r}")
-    print(result)
 
     if not result.summary:
-        print("No grammar issues found, skipping PR.")
+        write_summary(f"Checked {len(files)} file(s), no grammar issues found.")
         return
 
     #Write files to disk
@@ -77,6 +84,9 @@ def main():
     with open("pr_description.md", "w") as file:
         file.write("## Grammar Fixes\n\n")
         file.write("\n".join(f"- {point}" for point in result.summary))
+
+    bullets = "\n".join(f"- {point}" for point in result.summary)
+    write_summary(f"Opened PR with fixes across {len(result.corrected_files)} file(s):\n\n{bullets}")
 
 
 if __name__ == "__main__":
