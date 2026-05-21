@@ -81,6 +81,9 @@ To enable permissions go to: `Settings` -> `Actions` -> `General`
 **Will it edit my code, math, or markup?**
 No. The model is told to leave LaTeX commands, Markdown syntax, code blocks, inline code, math, citations, and references untouched, and to only correct clear prose errors.
 
+**Does merging a grammar-fix PR re-trigger the action?**
+No. The action detects pushes that consist entirely of its own commits (by checking the commit author) and skips them automatically. This works with merge commits and rebase-and-merge. If you use squash-and-merge, add a job-level guard to your workflow: `if: github.event.head_commit.author.name != 'github-actions[bot]'`.
+
 **Does it cost money?**
 Yes, you're paying your LLM provider directly per request. Pick `cheap` if you're cost-sensitive, or `expensive` for the strongest model on each provider.
 

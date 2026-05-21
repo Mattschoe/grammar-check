@@ -30,16 +30,51 @@ runs:
       with:
         fetch-depth: 0
 
+    - name: Check for bot-only push
+      id: bot-check
+      shell: bash
+      env:
+        BEFORE_SHA: ${{ github.event.before }}
+        AFTER_SHA: ${{ github.sha }}
+      run: |
+        # First push to a repo has an all-zeros BEFORE_SHA — always run.
+        if [[ "$BEFORE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        commit_count=$(git rev-list --count "$BEFORE_SHA..$AFTER_SHA")
+        bot_count=0
+        # Check if every commit in the push range is authored by the bot.
+        for sha in $(git rev-list "$BEFORE_SHA..$AFTER_SHA"); do
+          author=$(git log -1 --format='%an' "$sha")
+          if [[ "$author" == "github-actions[bot]" ]]; then
+            bot_count=$((bot_count + 1))
+          fi
+        done
+
+        if [[ "$bot_count" -eq "$commit_count" && "$commit_count" -gt 0 ]]; then
+          echo "All $commit_count commit(s) are from the grammar-check bot — skipping."
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+          echo "### Grammar check" >> "$GITHUB_STEP_SUMMARY"
+          echo "Skipped: all commits in this push are from the grammar-check bot." >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+        fi
+
     - uses: astral-sh/setup-uv@v6
+      if: steps.bot-check.outputs.skip != 'true'
       with:
         cache-dependency-glob: "${{ github.action_path }}/uv.lock"
 
     - name: Install action dependencies
+      if: steps.bot-check.outputs.skip != 'true'
       shell: bash
       working-directory: ${{ github.action_path }}
       run: uv sync --frozen
 
     - name: Run grammar checker
+      if: steps.bot-check.outputs.skip != 'true'
       shell: bash
       env:
         LLM_PROVIDER: ${{ inputs.provider }}
@@ -53,7 +88,7 @@ runs:
       run: uv --project "$ACTION_PATH" run python "$ACTION_PATH/main.py"
 
     - name: Open PR with fixes
-      if: hashFiles('pr_description.md') != ''
+      if: steps.bot-check.outputs.skip != 'true' && hashFiles('pr_description.md') != ''
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
