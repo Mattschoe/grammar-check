@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/Mattschoe/grammar-check/compare/v1.2.0...v1.2.1) (2026-05-21)
+
+
+### Bug Fixes
+
+* avoid retriggering action on PR rebasing ([bfcc1c7](https://github.com/Mattschoe/grammar-check/commit/bfcc1c705486aaad65635063115db7f5fee17af3))
+
 ## [1.2.0](https://github.com/Mattschoe/grammar-check/compare/v1.1.1...v1.2.0) (2026-05-18)
 
 
