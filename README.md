@@ -49,6 +49,7 @@ if nothing needed fixing, the action is a no-op.
 | `file-extensions`   | yes      | —        | Comma-separated extensions to check, no dots (e.g. `tex,md`). |
 | `tier`              | no       | `medium` | Model size: `cheap`, `medium`, or `expensive`.                |
 | `max-output-tokens` | no       | `16384`  | Max output tokens per file. Raise for long documents.         |
+| `commit-message`    | no       | `fix: grammar and spelling fixes` | Commit message + PR title for the grammar-fix PR. Free-form; any message accepted. |
 
 ## Supported Providers & Tiers
 
