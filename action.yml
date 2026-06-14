@@ -22,6 +22,10 @@ inputs:
     description: 'Maximum output tokens per file. Raise for long documents that get truncated.'
     required: false
     default: '16384'
+  system-prompt-append:
+    description: 'Extra instructions appended to the LLM system prompt (e.g. "avoid em-dashes").'
+    required: false
+    default: ''
   commit-message:
     description: 'Commit message and PR title for the grammar-fix PR. Free-form; defaults to a Conventional Commits fix: message but any message is accepted.'
     required: false
@@ -86,6 +90,7 @@ runs:
         LLM_API_KEY: ${{ inputs.api-key }}
         FILE_EXTENSIONS: ${{ inputs.file-extensions }}
         LLM_MAX_OUTPUT_TOKENS: ${{ inputs.max-output-tokens }}
+        SYSTEM_PROMPT_APPEND: ${{ inputs.system-prompt-append }}
         BEFORE_SHA: ${{ github.event.before }}
         AFTER_SHA: ${{ github.sha }}
         ACTION_PATH: ${{ github.action_path }}
