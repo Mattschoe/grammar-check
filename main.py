@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-from llm import call_claude, call_deepseek, ModelTier, FileResponse
+from llm import call_claude, call_deepseek, ModelTier, FileResponse, call_chatgpt
 
 system_prompt = """
 You are a grammar and spelling checker for prose documents.
@@ -62,6 +62,8 @@ def check_file(provider: str, filename: str, body: str, model_tier: ModelTier, m
         return call_deepseek(filename, body, system_prompt, model_tier, max_output_tokens)
     if provider == "claude":
         return call_claude(filename, body, system_prompt, model_tier, max_output_tokens)
+    if provider == "chatgpt":
+        return call_chatgpt(filename, body, system_prompt, model_tier, max_output_tokens)
     raise ValueError(f"Unknown LLM_PROVIDER: {provider!r}")
 
 

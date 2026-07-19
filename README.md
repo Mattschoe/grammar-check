@@ -42,14 +42,14 @@ if nothing needed fixing, the action is a no-op.
 
 ## Inputs
 
-| Input               | Required | Default  | Description                                                   |
-|---------------------|----------|----------|---------------------------------------------------------------|
-| `provider`          | yes      | —        | `claude` or `deepseek`.                                       |
-| `api-key`           | yes      | —        | API key for the chosen provider.                              |
-| `file-extensions`   | yes      | —        | Comma-separated extensions to check, no dots (e.g. `tex,md`). |
-| `tier`              | no       | `medium` | Model size: `cheap`, `medium`, or `expensive`.                |
-| `max-output-tokens`    | no       | `16384`  | Max output tokens per file. Raise for long documents.         |
-| `system-prompt-append` | no       | —        | Extra instructions appended to the LLM system prompt.         |
+| Input               | Required | Default  | Description                                                                        |
+|---------------------|----------|----------|------------------------------------------------------------------------------------|
+| `provider`          | yes      | —        | `claude`, `chatgpt` or `deepseek`.                                                 |
+| `api-key`           | yes      | —        | API key for the chosen provider.                                                   |
+| `file-extensions`   | yes      | —        | Comma-separated extensions to check, no dots (e.g. `tex,md`).                      |
+| `tier`              | no       | `medium` | Model size: `cheap`, `medium`, or `expensive`.                                     |
+| `max-output-tokens`    | no       | `16384`  | Max output tokens per file. Raise for long documents.                              |
+| `system-prompt-append` | no       | —        | Extra instructions appended to the LLM system prompt.                              |
 | `commit-message`    | no       | `fix: grammar and spelling fixes` | Commit message + PR title for the grammar-fix PR. Free-form; any message accepted. |
 
 Example with extra instructions:
@@ -64,6 +64,7 @@ with:
 ## Supported Providers & Tiers
 
 - **Claude:**  `api-key` is your Anthropic key. Tiers map to Haiku 4.5 (`cheap`), Sonnet 4.6 (`medium`), and Opus 4.7 (`expensive`).
+- **ChatGPT:** `api-key` is your ChatGPT key. Tiers map to gpt-4o-mini (`cheap`), gpt-4o (`medium`), and o3-mini (`expensive`)
 - **DeepSeek:** `api-key` is your DeepSeek key. `cheap` and `medium` use `deepseek-v4-flash`; `expensive` uses `deepseek-v4-pro` with extended thinking.
 
 ## Optional: skip pushes that don't touch prose
