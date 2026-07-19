@@ -89,6 +89,50 @@ def call_claude(filename: str, file_content: str, system_prompt: str, model_tier
         summary=cast(list[str], result.get("summary"))
     )
 
+def call_chatgpt(filename: str, file_content: str, system_prompt: str, model_tier: ModelTier, max_output_tokens: int) -> FileResponse:
+    api_key = SecretStr(os.environ["LLM_API_KEY"])
+    client = OpenAI(api_key=api_key.get_secret_value())
+
+    match model_tier:
+        case ModelTier.CHEAP:
+            model = "gpt-4o-mini"
+        case ModelTier.MEDIUM:
+            model = "gpt-4o"
+        case ModelTier.EXPENSIVE:
+            model = "o3-mini"
+
+    user_content = _user_message(filename, file_content)
+    response = client.chat.completions.create(
+        model=model,
+        max_completion_tokens=max_output_tokens,
+        response_format={
+            "type": "json_schema",
+            "json_schema": {
+                "name": "grammar_response",
+                "strict": True,
+                "schema": _TOOL_SCHEMA
+            }
+        },
+        messages=[
+            ChatCompletionSystemMessageParam(role="system", content=system_prompt),
+            ChatCompletionUserMessageParam(role="user", content=user_content)
+        ]
+    )
+
+    if response.choices[0].finish_reason == "lenght":
+        raise RuntimeError(
+            f"Model output truncated for {filename!r}; file is too large for a single response. "
+            f"Split the file or raise max_tokens."
+        )
+
+
+    result = json.loads(response.choices[0].message.content)
+    return FileResponse(
+        fixes_needed=cast(bool, result.get("fixes_needed", False)),
+        corrected_content=cast(str | None, result.get("corrected_content")),
+        summary=cast(list[str] | None, result.get("summary"))
+    )
+
 def call_deepseek(filename: str, file_content: str, system_prompt: str, model_tier: ModelTier, max_output_tokens: int) -> FileResponse:
     api_key = SecretStr(os.environ["LLM_API_KEY"])
     client = OpenAI(api_key=api_key.get_secret_value(), base_url="https://api.deepseek.com")
