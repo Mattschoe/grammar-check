@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.0](https://github.com/Mattschoe/grammar-check/compare/v1.2.1...v1.3.0) (2026-07-19)
+
+
+### Features
+
+* ability to append to system prompt ([bb2290d](https://github.com/Mattschoe/grammar-check/commit/bb2290d87d23cc4f502bc9415027c5037a0e946f))
+* make grammar-fix commit message configurable ([1af0676](https://github.com/Mattschoe/grammar-check/commit/1af067689501fe27cd3612488bfe9a532e02c44c))
+
+
+### Bug Fixes
+
+* prevent no-fixes from opening a pr ([82f6683](https://github.com/Mattschoe/grammar-check/commit/82f6683f9378d3a651554ce52b65fc88ba583a9b))
+* wrap api_key in SecretStr ([2490247](https://github.com/Mattschoe/grammar-check/commit/24902479b5c629f95df271250a367138a6741b67))
+
 ## [1.2.1](https://github.com/Mattschoe/grammar-check/compare/v1.2.0...v1.2.1) (2026-05-21)
 
 
