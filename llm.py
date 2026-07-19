@@ -13,6 +13,8 @@ from openai.types.chat import (
     ChatCompletionUserMessageParam,
 )
 from openai.types.shared_params import ResponseFormatJSONObject
+from pydantic import SecretStr
+
 
 @dataclass
 class FileResponse:
@@ -42,8 +44,8 @@ def call_claude(filename: str, file_content: str, system_prompt: str, model_tier
         "description": "Submit the grammar fixes and summary",
         "input_schema": _TOOL_SCHEMA
     }]
-    api_key = os.environ["LLM_API_KEY"]
-    client = anthropic.Anthropic(api_key=api_key)
+    api_key = SecretStr(os.environ["LLM_API_KEY"])
+    client = anthropic.Anthropic(api_key=api_key.get_secret_value())
 
     match model_tier:
         case ModelTier.CHEAP:
@@ -75,8 +77,8 @@ def call_claude(filename: str, file_content: str, system_prompt: str, model_tier
     )
 
 def call_deepseek(filename: str, file_content: str, system_prompt: str, model_tier: ModelTier, max_output_tokens: int) -> FileResponse:
-    api_key = os.environ["LLM_API_KEY"]
-    client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+    api_key = SecretStr(os.environ["LLM_API_KEY"])
+    client = OpenAI(api_key=api_key.get_secret_value(), base_url="https://api.deepseek.com")
 
     _JSON_SCHEMA_PROMPT = (
         '\n\nRespond with a JSON object matching this schema exactly:\n'
