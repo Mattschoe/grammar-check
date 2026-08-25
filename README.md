@@ -48,6 +48,7 @@ if nothing needed fixing, the action is a no-op.
 | `api-key`           | yes      | —        | API key for the chosen provider.                              |
 | `file-extensions`   | yes      | —        | Comma-separated extensions to check, no dots (e.g. `tex,md`). |
 | `tier`              | no       | `medium` | Model size: `cheap`, `medium`, or `expensive`.                |
+| `language`          | no       | —        | Locale of the prose, e.g. `en-US`, `en-GB`, `de-DE`. Unset: the model follows the document. |
 | `max-output-tokens`    | no       | `16384`  | Max output tokens per file. Raise for long documents.         |
 | `system-prompt-append` | no       | —        | Extra instructions appended to the LLM system prompt.         |
 | `commit-message`    | no       | `fix: grammar and spelling fixes` | Commit message + PR title for the grammar-fix PR. Free-form; any message accepted. |
@@ -65,6 +66,31 @@ with:
 
 - **Claude:**  `api-key` is your Anthropic key. Tiers map to Haiku 4.5 (`cheap`), Sonnet 4.6 (`medium`), and Opus 4.7 (`expensive`).
 - **DeepSeek:** `api-key` is your DeepSeek key. `cheap` and `medium` use `deepseek-v4-flash`; `expensive` uses `deepseek-v4-pro` with extended thinking.
+
+## Language and region
+
+US and UK English disagree about more than spelling — punctuation inside or outside 
+quotes, collective-noun agreement, date formats. Set `language` to the locale you write 
+in and corrections will follow its conventions:
+
+```yaml
+with:
+  language: en-GB
+```
+
+Values are locale codes: a language (`de`) with an optional region (`de-AT`). Case and 
+`_` separators are normalised, so `en_gb` and `EN-gb` both work. A malformed code fails 
+the run immediately, before any file is sent to the model.
+
+If you leave `language` unset, the action behaves exactly as it always has — nothing is 
+said about language and the model follows whatever the document is written in.
+
+This setting steers corrections; it does not convert documents. With `language: en-US`, 
+an existing `colour` is left alone — only actual errors get fixed. To rewrite spellings 
+across a document, use `system-prompt-append` to ask for it explicitly.
+
+For a repo with prose in two languages, run the action twice with different 
+`file-extensions` (or separate workflows scoped by `paths`), one job per language.
 
 ## Optional: skip pushes that don't touch prose
 
