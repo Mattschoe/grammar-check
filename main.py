@@ -30,24 +30,50 @@ def parse_globs() -> list[str]:
     return globs
 
 
-def get_changed_files() -> dict[str, str]:
+def parse_ignore_patterns() -> list[str]:
+    raw = os.environ.get("IGNORE_PATTERNS", "")
+    patterns = [
+        part.strip().lstrip("/")
+        for line in raw.splitlines()
+        for part in line.split(",")
+    ]
+    patterns = [pattern for pattern in patterns if pattern]
+    for pattern in patterns:
+        if pattern.startswith(":"):
+            raise ValueError(f"ignore patterns must not start with ':' (pathspec magic), got: {pattern!r}")
+    return patterns
+
+
+def _diff_paths(before: str, after: str, pathspecs: list[str]) -> list[str]:
+    result = subprocess.run(
+        args=["git", "diff", before, after, "--name-only", "--diff-filter=ACM", "--", *pathspecs],
+        capture_output=True,
+        text=True
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"git diff failed: {result.stderr.strip()}")
+    return result.stdout.strip().splitlines()
+
+
+def get_changed_files() -> tuple[dict[str, str], int]:
     before = os.environ["BEFORE_SHA"]
     after = os.environ["AFTER_SHA"]
     globs = parse_globs()
-    changed = subprocess.run(
-        args=["git", "diff", before, after, "--name-only", "--diff-filter=ACM", "--", *globs],
-        capture_output=True,
-        text=True
-    ).stdout.strip()
+    ignore_patterns = parse_ignore_patterns()
 
-    if not changed:
-        return {}
+    changed = _diff_paths(before, after, globs)
+    if ignore_patterns:
+        excludes = [f":(exclude){pattern}" for pattern in ignore_patterns]
+        kept = _diff_paths(before, after, globs + excludes)
+    else:
+        kept = changed
+    ignored_count = len(changed) - len(kept)
 
     files = {}
-    for path in changed.splitlines():
+    for path in kept:
         with open(path) as f:
             files[path] = f.read()
-    return files
+    return files, ignored_count
 
 def write_summary(message: str) -> None:
     print(message)
@@ -69,10 +95,11 @@ def main():
     provider = os.environ["LLM_PROVIDER"]
     model_tier = ModelTier(os.environ.get("LLM_TIER", "").strip().lower() or "medium")
     max_output_tokens = int(os.environ.get("LLM_MAX_OUTPUT_TOKENS", "16384"))
-    files = get_changed_files()
+    files, ignored_count = get_changed_files()
+    ignored_note = f" ({ignored_count} file(s) skipped by ignore patterns.)" if ignored_count else ""
 
     if not files:
-        write_summary("No matching files changed — nothing to check.")
+        write_summary(f"No matching files changed — nothing to check.{ignored_note}")
         return
 
     corrected_files: dict[str, str] = {}
@@ -85,7 +112,7 @@ def main():
         summary.extend(f"`{filename}`: {point}" for point in result.summary)
 
     if not summary:
-        write_summary(f"Checked {len(files)} file(s), no grammar issues found.")
+        write_summary(f"Checked {len(files)} file(s), no grammar issues found.{ignored_note}")
         return
 
     for filename, content in corrected_files.items():
@@ -97,7 +124,7 @@ def main():
         file.write("\n".join(f"- {point}" for point in summary))
 
     bullets = "\n".join(f"- {point}" for point in summary)
-    write_summary(f"Opened PR with fixes across {len(corrected_files)} file(s):\n\n{bullets}")
+    write_summary(f"Opened PR with fixes across {len(corrected_files)} file(s):{ignored_note}\n\n{bullets}")
 
 
 if __name__ == "__main__":

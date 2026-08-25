@@ -34,7 +34,8 @@ The action handles opening the PR.
 ## How it works
 
 On each push, the action looks at which files changed, filters to the 
-extensions you configured, and sends only those files to your chosen LLM. 
+extensions you configured, drops anything matching your `ignore` patterns, 
+and sends only what's left to your chosen LLM. 
 The model is instructed to fix grammar and spelling only, never markup, 
 code, math, citations, or references. If anything was corrected, 
 you get a PR with the cleaned-up files and a bullet summary of changes; 
@@ -51,6 +52,7 @@ if nothing needed fixing, the action is a no-op.
 | `max-output-tokens`    | no       | `16384`  | Max output tokens per file. Raise for long documents.         |
 | `system-prompt-append` | no       | —        | Extra instructions appended to the LLM system prompt.         |
 | `commit-message`    | no       | `fix: grammar and spelling fixes` | Commit message + PR title for the grammar-fix PR. Free-form; any message accepted. |
+| `ignore`            | no       | —        | Glob patterns for files to skip, one per line or comma-separated. |
 
 Example with extra instructions:
 
@@ -60,6 +62,31 @@ with:
     Avoid em-dashes — use commas or parentheses instead.
     Ensure the tone is formal academic English.
 ```
+
+## Ignoring files
+
+Some files shouldn't be rewritten even though they match your extensions — templates, 
+generated docs, vendored prose. List them under `ignore`:
+
+```yaml
+with:
+  file-extensions: tex,md
+  ignore: |
+    templates/**
+    vendor/**
+    CHANGELOG.md
+```
+
+Ignored files are dropped before anything is sent to the LLM, so they cost you nothing 
+and are never modified. A single pattern works inline (`ignore: templates/**`), and 
+commas work too (`ignore: templates/**, CHANGELOG.md`).
+
+Patterns use git pathspec syntax and are relative to the repo root:
+
+- `templates/**` skips everything under a root-level `templates/` directory.
+- `CHANGELOG.md` matches only the file at the root. To match a name at any depth, use 
+  `*CHANGELOG.md` or `**/CHANGELOG.md`.
+- `*.generated.md` matches at any depth, since `*` also crosses `/`.
 
 ## Supported Providers & Tiers
 
