@@ -2,8 +2,9 @@ import os
 import subprocess
 
 from llm import call_claude, call_deepseek, ModelTier, FileResponse
+from locale_support import describe_locale, normalize_locale
 
-system_prompt = """
+BASE_SYSTEM_PROMPT = """
 You are a grammar and spelling checker for prose documents.
 
 You will receive the full content of a single file, prefixed with === filename ===.
@@ -17,9 +18,26 @@ Your job is to:
 If there are no grammar or spelling errors, return the original content unchanged and an empty summary list.
 """
 
-append_prompt = os.environ.get("SYSTEM_PROMPT_APPEND", "").strip()
-if append_prompt:
-    system_prompt = system_prompt.rstrip() + "\n\n" + append_prompt
+
+def language_instructions(raw_language: str) -> str:
+    code = normalize_locale(raw_language)
+    return (
+        f"The document is written in {describe_locale(code)} ({code}). When correcting errors, "
+        f"follow the spelling, punctuation, and grammar conventions of that variety. "
+        f"Do not translate the text, and do not rewrite words or constructions that are already "
+        f"correct in another variety merely to match this one — only fix actual errors."
+    )
+
+
+def build_system_prompt() -> str:
+    prompt = BASE_SYSTEM_PROMPT
+    language = os.environ.get("TARGET_LANGUAGE", "").strip()
+    if language:
+        prompt = prompt.rstrip() + "\n\n" + language_instructions(language)
+    append_prompt = os.environ.get("SYSTEM_PROMPT_APPEND", "").strip()
+    if append_prompt:
+        prompt = prompt.rstrip() + "\n\n" + append_prompt
+    return prompt
 
 
 def parse_globs() -> list[str]:
@@ -57,7 +75,7 @@ def write_summary(message: str) -> None:
             f.write(f"### Grammar check\n\n{message}\n")
 
 
-def check_file(provider: str, filename: str, body: str, model_tier: ModelTier, max_output_tokens: int) -> FileResponse:
+def check_file(provider: str, filename: str, body: str, system_prompt: str, model_tier: ModelTier, max_output_tokens: int) -> FileResponse:
     if provider == "deepseek":
         return call_deepseek(filename, body, system_prompt, model_tier, max_output_tokens)
     if provider == "claude":
@@ -69,6 +87,7 @@ def main():
     provider = os.environ["LLM_PROVIDER"]
     model_tier = ModelTier(os.environ.get("LLM_TIER", "").strip().lower() or "medium")
     max_output_tokens = int(os.environ.get("LLM_MAX_OUTPUT_TOKENS", "16384"))
+    system_prompt = build_system_prompt()
     files = get_changed_files()
 
     if not files:
@@ -78,7 +97,7 @@ def main():
     corrected_files: dict[str, str] = {}
     summary: list[str] = []
     for filename, body in files.items():
-        result = check_file(provider, filename, body, model_tier, max_output_tokens)
+        result = check_file(provider, filename, body, system_prompt, model_tier, max_output_tokens)
         if not result.fixes_needed:
             continue
         corrected_files[filename] = result.corrected_content

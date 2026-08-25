@@ -1,5 +1,5 @@
 name: 'Grammar Check'
-description: 'AI grammar/spelling check for LaTeX files; opens a PR with fixes.'
+description: 'AI grammar/spelling check for prose files; opens a PR with fixes.'
 branding:
   icon: 'check-circle'
   color: 'blue'
@@ -15,6 +15,10 @@ inputs:
     description: 'Model tier: cheap | medium | expensive'
     required: false
     default: 'medium'
+  language:
+    description: 'Language/region of the prose, as a locale code (e.g. "en-US", "en-GB", "de-DE"). Leave empty to let the model follow the document.'
+    required: false
+    default: ''
   file-extensions:
     description: 'Comma-separated file extensions to check (e.g. "tex,md"). No leading dot.'
     required: true
@@ -88,6 +92,7 @@ runs:
         LLM_PROVIDER: ${{ inputs.provider }}
         LLM_TIER: ${{ inputs.tier }}
         LLM_API_KEY: ${{ inputs.api-key }}
+        TARGET_LANGUAGE: ${{ inputs.language }}
         FILE_EXTENSIONS: ${{ inputs.file-extensions }}
         LLM_MAX_OUTPUT_TOKENS: ${{ inputs.max-output-tokens }}
         SYSTEM_PROMPT_APPEND: ${{ inputs.system-prompt-append }}
